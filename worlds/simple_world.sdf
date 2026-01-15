@@ -184,7 +184,7 @@
         <visual name='aruco_box_mesh'>
           <geometry>
             <mesh>
-              <uri>model://aruco_box1/model.dae</uri>
+              <uri>model://aruco_box/model.dae</uri>
               <scale>0.25 0.25 0.25</scale>
             </mesh>
           </geometry>
@@ -201,7 +201,7 @@
         <visual name='aruco_box_mesh'>
           <geometry>
             <mesh>
-              <uri>model://aruco_box2/model.dae</uri>
+              <uri>model://aruco_box/model.dae</uri>
               <scale>0.25 0.25 0.25</scale>
             </mesh>
           </geometry>
@@ -218,7 +218,7 @@
         <visual name='aruco_box_mesh'>
           <geometry>
             <mesh>
-              <uri>model://aruco_box3/model.dae</uri>
+              <uri>model://aruco_box/model.dae</uri>
               <scale>0.25 0.25 0.25</scale>
             </mesh>
           </geometry>
@@ -235,7 +235,7 @@
         <visual name='aruco_box_mesh'>
           <geometry>
             <mesh>
-              <uri>model://aruco_box4/model.dae</uri>
+              <uri>model://aruco_box/model.dae</uri>
               <scale>0.25 0.25 0.25</scale>
             </mesh>
           </geometry>
