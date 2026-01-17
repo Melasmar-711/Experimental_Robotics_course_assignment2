@@ -34,19 +34,19 @@ find_package(OpenCV REQUIRED)
 find_package(aruco_opencv_msgs)
 
 
-add_executable(aruco_node_assignment src/servoing_node.cpp)
+#add_executable(aruco_node_assignment src/servoing_node.cpp)
 #add_executable(aruco_rosbot_node src/Servoing_node_using_compressed_imgs.cpp)
 
 
-ament_target_dependencies(aruco_node_assignment
-    rclcpp
-    geometry_msgs
-    sensor_msgs
-    cv_bridge
-    image_transport
-    OpenCV
-    aruco_opencv_msgs
-)
+#ament_target_dependencies(aruco_node_assignment
+#    rclcpp
+#    geometry_msgs
+#    sensor_msgs
+#    cv_bridge
+#    image_transport
+#    OpenCV
+#    aruco_opencv_msgs
+#)
 
 
 
@@ -62,7 +62,7 @@ install(DIRECTORY
 )
 
 install(TARGETS
-  aruco_node_assignment
+  #aruco_node_assignment
   DESTINATION lib/${PROJECT_NAME}
 )
 
