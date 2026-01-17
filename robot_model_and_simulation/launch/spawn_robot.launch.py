@@ -36,17 +36,17 @@ def generate_launch_description():
     )
 
     x_arg = DeclareLaunchArgument(
-        'x', default_value='2.5',
+        'x', default_value='1',
         description='x coordinate of spawned robot'
     )
 
     y_arg = DeclareLaunchArgument(
-        'y', default_value='1.5',
+        'y', default_value='1',
         description='y coordinate of spawned robot'
     )
 
     yaw_arg = DeclareLaunchArgument(
-        'yaw', default_value='-1.5707',
+        'yaw', default_value='0',
         description='yaw angle of spawned robot'
     )
 
@@ -112,7 +112,7 @@ def generate_launch_description():
             "imu@sensor_msgs/msg/Imu@gz.msgs.IMU",
             "/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat",
             "/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
-            "/scan/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
+            
             #"/camera/depth_image@sensor_msgs/msg/Image@gz.msgs.Image",
             #"/camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked"
 

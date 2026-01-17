@@ -21,11 +21,9 @@ find_package(nav2_msgs REQUIRED)
 
 add_executable(get_plan src/getplan.cpp)
 add_executable(get_plan_and_execute src/getplan_and_execute.cpp)
-add_executable(move_action_node src/move_action_node.cpp)
 add_executable(ask_charge_action_node src/ask_charge_action_node.cpp)
 add_executable(charge_action_node src/charge_action_node.cpp)
-add_executable(move_action_node_2 src/move_action_node_2.cpp)
-add_executable(move_action_node_3 src/move_action_node_3.cpp)
+add_executable(move_action_node_3 src/move_action_node.cpp)
 
 ament_target_dependencies(get_plan
   rclcpp
@@ -47,12 +45,7 @@ ament_target_dependencies(get_plan_and_execute
   rclcpp_action
 )
 
-ament_target_dependencies(move_action_node
-  rclcpp
-  rclcpp_action
-  plansys2_executor
-  plansys2_msgs
-)
+
 
 ament_target_dependencies(ask_charge_action_node
   rclcpp
@@ -68,13 +61,7 @@ ament_target_dependencies(charge_action_node
   plansys2_msgs
 )
 
-ament_target_dependencies(move_action_node_2
-  rclcpp
-  rclcpp_action
-  plansys2_executor
-  plansys2_msgs
-  geometry_msgs
-)
+
 
 ament_target_dependencies(move_action_node_3
   rclcpp
@@ -92,7 +79,7 @@ install(DIRECTORY
 )
 
 install(TARGETS
-  get_plan get_plan_and_execute move_action_node ask_charge_action_node charge_action_node move_action_node_2 move_action_node_3 
+  get_plan get_plan_and_execute  ask_charge_action_node charge_action_node  move_action_node_3 
   DESTINATION lib/${PROJECT_NAME}
 )
 
