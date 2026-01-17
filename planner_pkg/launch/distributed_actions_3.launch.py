@@ -129,7 +129,7 @@ def generate_launch_description():
         
     move_cmd = Node(
         package='plansys_interface',
-        executable='move_action_node_3',
+        executable='move_action_node',
         name='move_action_node',
         namespace=namespace,
         output='screen',
