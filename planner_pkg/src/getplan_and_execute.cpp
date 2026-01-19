@@ -1,133 +1,195 @@
+#include <memory>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <iostream>
+#include <sstream>
 
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #include "plansys2_pddl_parser/Utils.hpp"
 #include "plansys2_msgs/msg/action_execution_info.hpp"
 #include "plansys2_msgs/msg/plan.hpp"
+#include "plansys2_msgs/action/execute_plan.hpp"
+
 #include "plansys2_domain_expert/DomainExpertClient.hpp"
 #include "plansys2_planner/PlannerClient.hpp"
 #include "plansys2_problem_expert/ProblemExpertClient.hpp"
-#include "plansys2_executor/ExecutorClient.hpp"
 
+using namespace std::chrono_literals;
 
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include <ostream>
+enum Phase { EXPLORATION, ORDERED_PROCESSING, FINISHED };
 
-std::ostream& operator<<(std::ostream& os, const plansys2_msgs::msg::Plan & plan)
-{
-    os << "Plan:\n";
+// Helper to print plan
+std::ostream& operator<<(std::ostream& os, const plansys2_msgs::msg::Plan & plan) {
+    os << "Generated Plan:\n";
     for (const auto & item : plan.items) {
-        os << "  Action: " << item.action << "\n"
-           << "  Duration: " << item.duration << "\n"
-           << "  Time: " << item.time << "\n";
+        os << "  Action: " << item.action << " (Duration: " << item.duration << ", Start Time: " << item.time << ")\n";
     }
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const plansys2_msgs::action::ExecutePlan_Result & res)
-{
-    os << "ExecutePlan_Result { ";
-    os << "success: " << (res.success ? "true" : "false");
-    os << " }";
-    return os;
-}
-
-
-
-class Controller : public rclcpp::Node
-{
+class Controller : public rclcpp::Node {
 public:
-  Controller(): rclcpp::Node("controller")
-  {}
+    Controller() : Node("controller"), current_phase_(EXPLORATION) {}
 
-  void init()
-  {
-    domain_expert_ = std::make_shared<plansys2::DomainExpertClient>();
-    planner_client_ = std::make_shared<plansys2::PlannerClient>();
-    problem_expert_ = std::make_shared<plansys2::ProblemExpertClient>();
-    executor_client_ = std::make_shared<plansys2::ExecutorClient>();
+    void init() {
+        domain_expert_ = std::make_shared<plansys2::DomainExpertClient>();
+        planner_client_ = std::make_shared<plansys2::PlannerClient>();
+        problem_expert_ = std::make_shared<plansys2::ProblemExpertClient>();
+        
+        execute_plan_client_ = rclcpp_action::create_client<plansys2_msgs::action::ExecutePlan>(
+            this, "execute_plan");
 
-    action_feedback_sub_ = this->create_subscription<plansys2_msgs::msg::ActionExecutionInfo>(
-        "/action_execution_info", 10,
-        std::bind(&Controller::action_feedback_callback, this, std::placeholders::_1));
-  }
+        RCLCPP_INFO(get_logger(), "Phase 1: Exploration...");
+        
+        auto domain = domain_expert_->getDomain();
+        auto problem = problem_expert_->getProblem();
 
-  void plan()
-  {
-
-          auto domain = domain_expert_->getDomain();
-          auto problem = problem_expert_->getProblem();
-          auto plan = planner_client_->getPlan(domain, problem);
-
-          if (!plan.has_value()) {
-            std::cout << "Could not find plan to reach goal " <<
-              parser::pddl::toString(problem_expert_->getGoal()) << std::endl;
-          }
-
-          else{
-          std::cout << plan.value() << std::endl;
-          executor_client_->start_plan_execution(plan.value());
+        if (problem.empty()) {
+            RCLCPP_ERROR(get_logger(), "Problem is empty!");
+            return;
         }
-      
 
-  }
+        auto plan = planner_client_->getPlan(domain, problem);
+        if (!plan.has_value()) {
+            RCLCPP_ERROR(get_logger(), "Could not find plan for Phase 1!");
+            return;
+        }
 
-
+        std::cout << plan.value() << std::endl;
+        execute_plan(plan.value());
+    }
 
 private:
+    void execute_plan(const plansys2_msgs::msg::Plan & plan) {
+        if (!execute_plan_client_->wait_for_action_server(5s)) {
+            RCLCPP_ERROR(get_logger(), "Executor action server not available");
+            return;
+        }
 
-void action_feedback_callback(const plansys2_msgs::msg::ActionExecutionInfo::SharedPtr msg)
-{
-    if(msg->action_full_name !=":0"){
-    action_completion_map_[msg->action_full_name] = msg->completion;
-    std::cout << "Action: " << msg->action_full_name
-              << " | Completion: " << (msg->completion * 100.0) << "%"
-              << " | Status: ";
-    switch(msg->status) {
-        case plansys2_msgs::msg::ActionExecutionInfo::NOT_EXECUTED:
-            std::cout << "NOT_EXECUTED"; break;
-        case plansys2_msgs::msg::ActionExecutionInfo::EXECUTING:
-            std::cout << "EXECUTING"; break;
-        case plansys2_msgs::msg::ActionExecutionInfo::SUCCEEDED:
-            std::cout << "SUCCEEDED"; break;
-        case plansys2_msgs::msg::ActionExecutionInfo::FAILED:
-            std::cout << "FAILED"; break;
-        case plansys2_msgs::msg::ActionExecutionInfo::CANCELLED:
-            std::cout << "CANCELLED"; break;
-        default:
-            std::cout << "UNKNOWN"; break;
+        auto goal_msg = plansys2_msgs::action::ExecutePlan::Goal();
+        goal_msg.plan = plan;
+
+        auto send_goal_options = rclcpp_action::Client<plansys2_msgs::action::ExecutePlan>::SendGoalOptions();
+        
+        send_goal_options.result_callback = 
+            std::bind(&Controller::execution_result_callback, this, std::placeholders::_1);
+
+        execute_plan_client_->async_send_goal(goal_msg, send_goal_options);
+        RCLCPP_INFO(get_logger(), "Plan sent to executor. Waiting for completion...");
     }
-    std::cout << std::endl;
-  }
 
-    bool all_done = true;
-    for (auto & a : action_completion_map_) {
-        if (a.second < 1.0) {
-            all_done = false;
-            break;
+    void execution_result_callback(const rclcpp_action::ClientGoalHandle<plansys2_msgs::action::ExecutePlan>::WrappedResult & result) {
+        if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+            RCLCPP_INFO(get_logger(), "Plan Finished Successfully!");
+            
+            if (current_phase_ == EXPLORATION) {
+                transition_to_ordered();
+            } else if (current_phase_ == ORDERED_PROCESSING) {
+                RCLCPP_INFO(get_logger(), "MISSION COMPLETE: All markers processed.");
+                current_phase_ = FINISHED;
+            }
+        } else {
+            RCLCPP_ERROR(get_logger(), "Plan Failed or Cancelled!");
+            current_phase_ = FINISHED;
         }
     }
 
-    if (all_done) {
-        std::cout << "Everything done!!" << std::endl;
-        rclcpp::shutdown();
+    void transition_to_ordered() {
+        RCLCPP_INFO(get_logger(), "-----------------------------------------");
+        RCLCPP_INFO(get_logger(), "Transitioning to Phase 2: Ordering Markers");
+
+        // 1. Get Discovered Markers
+        auto instances = problem_expert_->getInstances();
+        std::vector<int> ids;
+        std::stringstream ss;
+        
+        ss << "Found: ";
+        for(const auto & inst : instances) {
+            if(inst.type == "marker" && inst.name != "m_start") {
+                try {
+                    int id = std::stoi(inst.name.substr(6)); // "marker512" -> 512
+                    ids.push_back(id);
+                    ss << id << " ";
+                } catch (...) {}
+            }
+        }
+        RCLCPP_INFO(get_logger(), "%s", ss.str().c_str());
+
+        if (ids.empty()) {
+             RCLCPP_ERROR(get_logger(), "No markers found!");
+             current_phase_ = FINISHED;
+             return;
+        }
+
+        // 2. Sort (Lowest -> Highest)
+        std::sort(ids.begin(), ids.end());
+        
+        // Clear StringStream to print ACTUAL sorted order
+        ss.str(""); ss.clear(); 
+        ss << "Sorted: ";
+        for(int id : ids) ss << id << " ";
+        RCLCPP_INFO(get_logger(), "%s", ss.str().c_str());
+
+        // 3. Clear Old Goal & Prep Logic
+        problem_expert_->clearGoal();
+        
+        // Add dummy start marker to anchor the chain
+        problem_expert_->addInstance(plansys2::Instance("m_start", "marker"));
+        problem_expert_->addPredicate(plansys2::Predicate("(processed m_start)"));
+
+        std::string prev = "m_start";
+        for(int id : ids) {
+            std::string curr = "marker" + std::to_string(id);
+            // Define the order: prev must be processed before curr
+            problem_expert_->addPredicate(plansys2::Predicate("(next_id " + prev + " " + curr + ")"));
+            prev = curr;
+        }
+
+        // 4. Set Goal (Wrap in AND to satisfy parser)
+        std::string final_marker = "marker" + std::to_string(ids.back());
+        
+        // FIX: Wrap in (and ...)
+        std::string goal_str = "(and (processed " + final_marker + "))"; 
+        
+        RCLCPP_INFO(get_logger(), "New Goal: %s", goal_str.c_str());
+        
+        if (problem_expert_->setGoal(plansys2::Goal(goal_str))) {
+             RCLCPP_INFO(get_logger(), "Goal set successfully.");
+        } else {
+             RCLCPP_ERROR(get_logger(), "Failed to set goal: %s", goal_str.c_str());
+             current_phase_ = FINISHED;
+             return;
+        }
+
+        // 5. Generate Phase 2 Plan
+        auto domain = domain_expert_->getDomain();
+        auto problem = problem_expert_->getProblem();
+        auto plan = planner_client_->getPlan(domain, problem);
+
+        if (plan.has_value()) {
+            current_phase_ = ORDERED_PROCESSING;
+            std::cout << plan.value() << std::endl;
+            execute_plan(plan.value());
+        } else {
+            RCLCPP_ERROR(get_logger(), "Phase 2 Planning Failed! (Check predicates/types)");
+        }
     }
-}
-  std::shared_ptr<plansys2::DomainExpertClient> domain_expert_;
-  std::shared_ptr<plansys2::PlannerClient> planner_client_;
-  std::shared_ptr<plansys2::ProblemExpertClient> problem_expert_;
-  std::shared_ptr<plansys2::ExecutorClient> executor_client_;
-  rclcpp::Subscription<plansys2_msgs::msg::ActionExecutionInfo>::SharedPtr action_feedback_sub_;
-  std::map<std::string, float> action_completion_map_;
+
+    Phase current_phase_;
+    std::shared_ptr<plansys2::DomainExpertClient> domain_expert_;
+    std::shared_ptr<plansys2::PlannerClient> planner_client_;
+    std::shared_ptr<plansys2::ProblemExpertClient> problem_expert_;
+    rclcpp_action::Client<plansys2_msgs::action::ExecutePlan>::SharedPtr execute_plan_client_;
 };
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char ** argv) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<Controller>();
   node->init();
-  node->plan();
-  rclcpp::spin(node);
+  rclcpp::spin(node); 
   rclcpp::shutdown();
   return 0;
 }
