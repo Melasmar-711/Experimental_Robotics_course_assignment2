@@ -1,65 +1,58 @@
-(define (domain simple)
-(:requirements :strips :typing :adl :fluents :durative-actions)
+(define (domain assignment2)
+    (:requirements :strips :typing :adl :durative-actions :equality)
 
-;; Types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(:types
-robot
-room
-);; end Types ;;;;;;;;;;;;;;;;;;;;;;;;;
+    (:types
+        robot
+        waypoint
+        marker
+    )
 
-;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;
-(:predicates
+    (:predicates
+        (robot_at ?r - robot ?wp - waypoint)
+        (searched ?wp - waypoint)
+        (marker_at ?m - marker ?wp - waypoint)
+        (processed ?m - marker)
+        (next_id ?m1 ?m2 - marker) ;; Enforces processing order
+    )
 
-(robot_at ?r - robot ?ro - room)
-(connected ?ro1 ?ro2 - room)
-(battery_full ?r - robot)
-(battery_low ?r - robot)
-(charging_point_at ?ro - room)
-
-);; end Predicates ;;;;;;;;;;;;;;;;;;;;
-;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;
-(:functions
-
-);; end Functions ;;;;;;;;;;;;;;;;;;;;
-;; Actions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(:durative-action move
-    :parameters (?r - robot ?r1 ?r2 - room)
-    :duration ( = ?duration 5)
-    :condition (and
-        (at start(connected ?r1 ?r2))
-        (at start(robot_at ?r ?r1))
-        (over all(battery_full ?r))
+    ;; Move between any two waypoints
+    (:durative-action move
+        :parameters (?r - robot ?from ?to - waypoint)
+        :duration (= ?duration 10)
+        :condition (and
+            (at start (robot_at ?r ?from))
         )
-    :effect (and
-        (at start(not(robot_at ?r ?r1)))
-        (at end(robot_at ?r ?r2))
+        :effect (and
+            (at start (not (robot_at ?r ?from)))
+            (at end (robot_at ?r ?to))
+        )
+    )
+
+    ;; Phase 1: Search a waypoint to find markers
+    (:durative-action search
+        :parameters (?r - robot ?wp - waypoint)
+        :duration (= ?duration 5)
+        :condition (and
+            (over all (robot_at ?r ?wp))
+        )
+        :effect (and
+            (at end (searched ?wp))
+        )
+    )
+
+    ;; Phase 2: Process marker (Visual Servoing)
+    ;; Crucial: Requires robot to be at the waypoint where the marker IS.
+    (:durative-action process_marker
+        :parameters (?r - robot ?m - marker ?wp - waypoint ?prev_m - marker)
+        :duration (= ?duration 10)
+        :condition (and
+            (over all (robot_at ?r ?wp))
+            (over all (marker_at ?m ?wp))      ;; Robot knows m is at wp
+            (at start (processed ?prev_m))     ;; Must have processed previous ID
+            (at start (next_id ?prev_m ?m))    ;; Enforces the chain
+        )
+        :effect (and
+            (at end (processed ?m))
+        )
     )
 )
-
-(:durative-action askcharge
-    :parameters (?r - robot ?r1 ?r2 - room)
-    :duration ( = ?duration 5)
-    :condition (and
-        (at start(robot_at ?r ?r1))
-        (at start(charging_point_at ?r2))
-       )
-    :effect (and
-        (at start(not(robot_at ?r ?r1)))
-        (at end(robot_at ?r ?r2))
-    )
-)
-
-(:durative-action charge
-    :parameters (?r - robot ?ro - room)
-    :duration ( = ?duration 5)
-    :condition (and
-        (at start(robot_at ?r ?ro))
-        (at start(charging_point_at ?ro))
-    )
-    :effect (and
-         (at end(not(battery_low ?r)))
-         (at end(battery_full ?r))
-    )
-)
-
-);; end Domain ;;;;;;;;;;;;;;;;;;;;;;;;

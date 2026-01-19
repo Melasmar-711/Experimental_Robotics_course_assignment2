@@ -1,26 +1,21 @@
-( define ( problem problem_1 )
-( :domain simple )
-( :objects
-	robot1  - robot
-  bedroom kitchen bathroom sitting_room corridor - room
-)
-( :init
-	( robot_at robot1 sitting_room)
+(define (problem assignment2_exploration)
+    (:domain assignment2)
 
-  ( connected sitting_room corridor )
-  ( connected corridor sitting_room )
-  ( connected bedroom corridor )
-  ( connected corridor bedroom )
-  ( connected bedroom bathroom )
-  ( connected bathroom bedroom )
-  ( connected sitting_room kitchen )
-  ( connected kitchen sitting_room )
+    (:objects
+        mogi_bot - robot
+        wp_start wp1 wp2 wp3 wp4 - waypoint
+    )
 
-  ( charging_point_at corridor)
-  ( battery_low robot1)
-)
-( :goal
-	( and
-		( robot_at robot1 bathroom)
-	))
+    (:init
+        (robot_at mogi_bot wp_start)
+    )
+
+    (:goal 
+        (and 
+            (searched wp1)
+            (searched wp2)
+            (searched wp3)
+            (searched wp4)
+        )
+    )
 )
