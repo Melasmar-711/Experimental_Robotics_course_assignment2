@@ -46,7 +46,7 @@
         </image>
         <clip>
           <near>0.1</near>
-          <far>15</far>
+          <far>7</far>
         </clip>
         <optical_frame_id>camera_link_optical</optical_frame_id>
         <camera_info_topic>camera/camera_info</camera_info_topic>
