@@ -135,21 +135,24 @@ def generate_launch_description():
         output='screen',
         parameters=[])
 
-    charge_cmd = Node(
+  
+    search_waypoint_action = Node(
         package='plansys_interface',
-        executable='charge_action_node',
-        name='charge_action_node',
+        executable='search_waypoint_node',
+        name='search_waypoint_node',
+        namespace=namespace,
+        output='screen',
+        parameters=[])
+    
+
+    process_frame_action = Node(
+        package='plansys_interface',
+        executable='process_action_node',
+        name='process_action_node',
         namespace=namespace,
         output='screen',
         parameters=[])
 
-    ask_charge_cmd = Node(
-        package='plansys_interface',
-        executable='ask_charge_action_node',
-        name='ask_charge_action_node',
-        namespace=namespace,
-        output='screen',
-        parameters=[])  
         
     ld = LaunchDescription()
 
@@ -168,7 +171,9 @@ def generate_launch_description():
     ld.add_action(executor_cmd)
     ld.add_action(lifecycle_manager_cmd)
     ld.add_action(move_cmd)
-    ld.add_action(charge_cmd)
-    ld.add_action(ask_charge_cmd)
+    ld.add_action(process_frame_action)
+    ld.add_action(search_waypoint_action)
+
+
     
     return ld
