@@ -2,23 +2,25 @@
 #include <vector>
 #include <string>
 #include <cmath>
-#include <mutex> // Required for thread safety
+#include <mutex>
+#include <thread>
 
 #include "plansys2_executor/ActionExecutorClient.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include <cv_bridge/cv_bridge.hpp> // Check if your system needs .h or .hpp
+#include <cv_bridge/cv_bridge.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include <opencv2/highgui.hpp> // Required for imshow
 
 using namespace std::chrono_literals;
 
 class ProcessAction : public plansys2::ActionExecutorClient {
 public:
   ProcessAction() : plansys2::ActionExecutorClient("process_marker", 100ms) {
-    // Constructor empty to avoid segfaults
+    // Constructor
   }
 
 private:
@@ -32,9 +34,8 @@ private:
             "/camera/image", 10, 
             std::bind(&ProcessAction::image_callback, this, std::placeholders::_1));
     }
-    // ---------------------------
 
-    // 1. Safe Image Copy (Fixes the Crash)
+    // 1. Safe Image Copy
     cv::Mat frame_copy;
     {
         std::lock_guard<std::mutex> lock(img_mutex_);
@@ -46,9 +47,9 @@ private:
         last_frame_.copyTo(frame_copy);
     }
 
-    // 2. Get Target ID from arguments
+    // 2. Get Target ID
     if (get_arguments().size() < 2) {
-        finish(false, 1.0, "Missing arguments");
+        finish_action(false, "Missing arguments");
         return;
     }
 
@@ -57,77 +58,147 @@ private:
     try {
         target_id = std::stoi(arg_id.substr(6)); // Strip "marker" prefix
     } catch (...) {
-        RCLCPP_ERROR(get_logger(), "Invalid marker argument: %s", arg_id.c_str());
-        finish(false, 1.0, "Invalid Argument");
+        finish_action(false, "Invalid Argument");
         return;
     }
 
-    // 3. Detect Markers (Using the Safe Copy)
+    // 3. Detect Markers
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     auto dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
     cv::aruco::detectMarkers(frame_copy, dictionary, corners, ids);
 
+    // Draw bounding boxes for ALL markers
+    if (!ids.empty()) {
+        cv::aruco::drawDetectedMarkers(frame_copy, corners, ids);
+    }
+
     bool found = false;
     float center_x = 0.0;
+    float center_y = 0.0;
 
     for (size_t i = 0; i < ids.size(); ++i) {
         if (ids[i] == target_id) {
             found = true;
-            // Calculate center X of the marker
+            // Calculate exact center of the marker
             center_x = (corners[i][0].x + corners[i][2].x) / 2.0f;
+            center_y = (corners[i][0].y + corners[i][2].y) / 2.0f;
             break;
         }
     }
 
     geometry_msgs::msg::Twist vel;
-    if (found) {
-        // 4. Visual Servoing
-        float image_center = frame_copy.cols / 2.0f;
-        float error = center_x - image_center;
+    bool action_finished = false;
 
-        // Threshold (e.g., within 10 pixels)
-        if (std::abs(error) > 10.0) {
-            vel.angular.z = -0.002 * error; // P-Controller
-            cmd_vel_pub_->publish(vel);
-            send_feedback(0.5, "Centering marker...");
-        } else {
-            // 5. Processing Action (Stop & Save)
+    // --- LOGIC BLOCK ---
+    if (found) {
+        float image_center_x = frame_copy.cols / 2.0f;
+        float error = center_x - image_center_x;
+
+        // Check if we are already in the "Locked & Waiting" phase
+        if (processing_started_) {
+            // STOP ROBOT
             vel.angular.z = 0.0;
             cmd_vel_pub_->publish(vel);
 
-            RCLCPP_INFO(get_logger(), "Marker %d centered. Processing...", target_id);
+            // Draw GREEN Circle on the marker center
+            cv::circle(frame_copy, cv::Point(center_x, center_y), 50, cv::Scalar(0, 255, 0), 4);
+            cv::putText(frame_copy, "LOCKED", cv::Point(center_x - 30, center_y - 60), 
+                        cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
 
-            // Draw Green Circle on the COPY
-            cv::circle(frame_copy, cv::Point(center_x, frame_copy.rows / 2), 50, cv::Scalar(0, 255, 0), 4);
+            // Check Timer
+            auto elapsed = (this->now() - processing_start_time_).seconds();
+            int remaining = 5 - (int)elapsed;
+            RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Marker locked. Finishing in %d seconds...", remaining);
+
+            if (elapsed > 5.0) {
+                action_finished = true;
+            }
+
+        } else {
+            // Not locked yet, check error
+            if (std::abs(error) > 10.0) {
+                // SERVOING
+                vel.angular.z = -0.002 * error; 
+                cmd_vel_pub_->publish(vel);
+                send_feedback(0.5, "Centering marker...");
+                
+                // Draw YELLOW Circle (Adjusting) on marker center
+                cv::circle(frame_copy, cv::Point(center_x, center_y), 50, cv::Scalar(0, 255, 255), 2);
             
-            // Save Image
-            std::string filename = "marker_" + std::to_string(target_id) + "_processed.jpg";
-            cv::imwrite(filename, frame_copy);
-            RCLCPP_INFO(get_logger(), "Saved image: %s", filename.c_str());
-
-            finish(true, 1.0, "Marker Processed");
+            } else {
+                // CENTERED! Start the 5-second timer
+                processing_started_ = true;
+                processing_start_time_ = this->now();
+                
+                vel.angular.z = 0.0;
+                cmd_vel_pub_->publish(vel);
+                
+                RCLCPP_INFO(get_logger(), "Marker centered! Locking for 5 seconds...");
+            }
         }
     } else {
-        // If target marker not seen, rotate slowly to find it
-        vel.angular.z = 0.3;
-        cmd_vel_pub_->publish(vel);
-        send_feedback(0.2, "Searching for target marker...");
+        // Lost marker?
+        if (processing_started_) {
+            // If we lost it while waiting, just count down anyway
+            vel.angular.z = 0.0;
+            cmd_vel_pub_->publish(vel);
+            
+            auto elapsed = (this->now() - processing_start_time_).seconds();
+            if (elapsed > 5.0) action_finished = true;
+            
+        } else {
+            // Search Mode
+            vel.angular.z = 0.3;
+            cmd_vel_pub_->publish(vel);
+            send_feedback(0.2, "Searching for target marker...");
+        }
     }
+
+    // --- SHOW WINDOW ---
+    try {
+        cv::imshow("Process Action", frame_copy);
+        cv::waitKey(1); 
+    } catch (...) {}
+
+    if (action_finished) {
+        finish_action(true, "Marker Processed");
+    }
+  }
+
+  void finish_action(bool success, std::string msg) {
+      // Stop Robot
+      geometry_msgs::msg::Twist vel;
+      vel.angular.z = 0.0;
+      if(cmd_vel_pub_) cmd_vel_pub_->publish(vel);
+
+      // Reset State
+      processing_started_ = false;
+
+      // Close Window
+      try {
+          cv::destroyAllWindows();
+          cv::waitKey(1); 
+      } catch (...) {}
+      
+      finish(success, 1.0, msg);
   }
 
   void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
     try { 
         std::lock_guard<std::mutex> lock(img_mutex_);
         last_frame_ = cv_bridge::toCvCopy(msg, "bgr8")->image; 
-    } 
-    catch (...) {}
+    } catch (...) {}
   }
 
-  std::mutex img_mutex_; // Mutex for thread safety
+  std::mutex img_mutex_;
   cv::Mat last_frame_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_{nullptr};
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_{nullptr};
+  
+  // Timer variables
+  bool processing_started_ = false;
+  rclcpp::Time processing_start_time_;
 };
 
 int main(int argc, char ** argv)

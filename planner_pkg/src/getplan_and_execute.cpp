@@ -151,7 +151,7 @@ private:
         // 4. Set Goal (Wrap in AND to satisfy parser)
         std::string final_marker = "marker" + std::to_string(ids.back());
         
-        // FIX: Wrap in (and ...)
+        
         std::string goal_str = "(and (processed " + final_marker + "))"; 
         
         RCLCPP_INFO(get_logger(), "New Goal: %s", goal_str.c_str());
