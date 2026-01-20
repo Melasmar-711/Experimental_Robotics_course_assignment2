@@ -41,15 +41,15 @@
     )
 
     ;; Phase 2: Process marker (Visual Servoing)
-    ;; Crucial: Requires robot to be at the waypoint where the marker IS.
+    ;; Crucial: Requires robot to be at the waypoint where the marker is.
     (:durative-action process_marker
         :parameters (?r - robot ?m - marker ?wp - waypoint ?prev_m - marker)
         :duration (= ?duration 10)
         :condition (and
-            (over all (robot_at ?r ?wp))
+            (over all (robot_at ?r ?wp))        ;; during the entire action this ensures the robot didn't move to another waypont
             (over all (marker_at ?m ?wp))      ;; Robot knows m is at wp
             (at start (processed ?prev_m))     ;; Must have processed previous ID
-            (at start (next_id ?prev_m ?m))    ;; Enforces the chain
+            (at start (next_id ?prev_m ?m))    ;; Enforces the chain order in which the markers should be processed
         )
         :effect (and
             (at end (processed ?m))
