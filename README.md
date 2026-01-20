@@ -103,3 +103,20 @@ in a fifth terminal run
 
 `ros2 run  plansys_interface get_plan_and_execute`
 
+
+
+## Results
+
+### log of plans
+
+**in the exploration phase**  
+
+
+
+
+**in the sorting and processing phase**
+
+
+
+### video
+
