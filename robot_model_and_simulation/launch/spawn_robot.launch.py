@@ -9,10 +9,10 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    pkg_bme_gazebo_sensors = get_package_share_directory('assign2')
+    pkg_assign2 = get_package_share_directory('assign2')
 
 
-    gazebo_models_path, ignore_last_dir = os.path.split(pkg_bme_gazebo_sensors)
+    gazebo_models_path, ignore_last_dir = os.path.split(pkg_assign2)
     os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
 
     rviz_launch_arg = DeclareLaunchArgument(
@@ -57,14 +57,14 @@ def generate_launch_description():
 
     # Define the path to your URDF or Xacro file
     urdf_file_path = PathJoinSubstitution([
-        pkg_bme_gazebo_sensors,  # Replace with your package name
+        pkg_assign2,  # Replace with your package name
         "urdf",
         LaunchConfiguration('model')  # Replace with your URDF or Xacro file
     ])
 
     world_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_bme_gazebo_sensors, 'launch', 'my_launch.py'),
+            os.path.join(pkg_assign2, 'launch', 'my_launch.py'),
         ),
         launch_arguments={
         'world': LaunchConfiguration('world'),
@@ -75,7 +75,7 @@ def generate_launch_description():
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', PathJoinSubstitution([pkg_bme_gazebo_sensors, 'rviz', LaunchConfiguration('rviz_config')])],
+        arguments=['-d', PathJoinSubstitution([pkg_assign2, 'rviz', LaunchConfiguration('rviz_config')])],
         condition=IfCondition(LaunchConfiguration('rviz')),
         parameters=[
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
@@ -144,7 +144,7 @@ def generate_launch_description():
         name='ekf_filter_node',
         output='screen',
         parameters=[
-            os.path.join(pkg_bme_gazebo_sensors, 'config', 'ekf.yaml'),
+            os.path.join(pkg_assign2, 'config', 'ekf.yaml'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
             ]
         )

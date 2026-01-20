@@ -17,13 +17,20 @@ find_package(plansys2_executor REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 
 add_executable(get_plan src/getplan.cpp)
 add_executable(get_plan_and_execute src/getplan_and_execute.cpp)
-add_executable(ask_charge_action_node src/ask_charge_action_node.cpp)
-add_executable(charge_action_node src/charge_action_node.cpp)
+add_executable(search_action_node src/search_action_node.cpp)
+add_executable(picture_action_node src/picture_action_node.cpp)
 add_executable(move_action_node src/move_action_node.cpp)
+add_executable(action_manager_node src/action_manager_node.cpp)
 
 ament_target_dependencies(get_plan
   rclcpp
@@ -47,21 +54,27 @@ ament_target_dependencies(get_plan_and_execute
 
 
 
-ament_target_dependencies(ask_charge_action_node
+ament_target_dependencies(search_action_node
   rclcpp
-  rclcpp_action
   plansys2_executor
-  plansys2_msgs
+  geometry_msgs
+  sensor_msgs
+  std_msgs
+  cv_bridge
+  nav2_msgs
+  tf2
+  tf2_geometry_msgs
 )
+target_link_libraries(search_action_node ${OpenCV_LIBRARIES})
 
-ament_target_dependencies(charge_action_node
+ament_target_dependencies(picture_action_node
   rclcpp
-  rclcpp_action
   plansys2_executor
-  plansys2_msgs
+  cv_bridge
+  sensor_msgs
+  geometry_msgs
 )
-
-
+target_link_libraries(picture_action_node ${OpenCV_LIBRARIES})
 
 ament_target_dependencies(move_action_node
   rclcpp
@@ -72,14 +85,25 @@ ament_target_dependencies(move_action_node
   nav2_msgs
 )
 
+ament_target_dependencies(action_manager_node
+  rclcpp
+  plansys2_executor
+  plansys2_msgs
+  plansys2_domain_expert
+  plansys2_planner
+  plansys2_problem_expert
+  plansys2_pddl_parser
+  std_msgs
+)
+
 install(DIRECTORY
-  domain
+  pddl
   launch
   DESTINATION share/${PROJECT_NAME}
 )
 
 install(TARGETS
-  get_plan get_plan_and_execute  ask_charge_action_node charge_action_node  move_action_node
+  get_plan get_plan_and_execute  search_action_node picture_action_node  move_action_node action_manager_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

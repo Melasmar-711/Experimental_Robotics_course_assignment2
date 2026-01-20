@@ -1,4 +1,5 @@
 import os
+from re import search
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -24,13 +25,13 @@ def generate_launch_description():
     
     declare_model_file_cmd = DeclareLaunchArgument(
         'model_file',
-        default_value=os.path.join(interface_dir, "domain", "example.pddl"),
+        default_value=os.path.join(interface_dir, "pddl", "domain.pddl"),
         description='PDDL Model file'
     )
 
     declare_problem_file_cmd = DeclareLaunchArgument(
         'problem_file', 
-        default_value=os.path.join(interface_dir, "domain", "problem.pddl"),
+        default_value=os.path.join(interface_dir, "pddl", "problem.pddl"),
         description='PDDL Problem file')
         
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -125,6 +126,14 @@ def generate_launch_description():
         name='lifecycle_manager_node',
         namespace=namespace,
         output='screen',
+        parameters=[{'autostart': True, 'bond_timeout': 4.0}])
+    
+    mission_manager_cmd = Node(
+        package='plansys_interface',
+        executable='action_manager_node', 
+        name='action_manager_node',      
+        namespace=namespace,
+        output='screen',
         parameters=[])
         
     move_cmd = Node(
@@ -135,18 +144,18 @@ def generate_launch_description():
         output='screen',
         parameters=[])
 
-    charge_cmd = Node(
+    search_cmd = Node(
         package='plansys_interface',
-        executable='charge_action_node',
-        name='charge_action_node',
+        executable='search_action_node',
+        name='search_action_node',
         namespace=namespace,
         output='screen',
         parameters=[])
 
-    ask_charge_cmd = Node(
+    picture_cmd = Node(
         package='plansys_interface',
-        executable='ask_charge_action_node',
-        name='ask_charge_action_node',
+        executable='picture_action_node',
+        name='picture_action_node',
         namespace=namespace,
         output='screen',
         parameters=[])  
@@ -167,8 +176,9 @@ def generate_launch_description():
     ld.add_action(planner_cmd)
     ld.add_action(executor_cmd)
     ld.add_action(lifecycle_manager_cmd)
+    ld.add_action(mission_manager_cmd)
     ld.add_action(move_cmd)
-    ld.add_action(charge_cmd)
-    ld.add_action(ask_charge_cmd)
+    ld.add_action(search_cmd)
+    ld.add_action(picture_cmd)
     
     return ld

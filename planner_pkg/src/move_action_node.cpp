@@ -8,6 +8,7 @@
 #include <memory>
 #include <chrono>
 #include <string>
+#include <map>
 #include <algorithm>
 #include <cmath>
 
@@ -17,7 +18,7 @@ class MoveAction : public plansys2::ActionExecutorClient
 {
 public:
   MoveAction()
-  : plansys2::ActionExecutorClient("move", 500ms), goal_sent_(false), progress_(0.0)
+  : plansys2::ActionExecutorClient("move", 500ms), progress_(0.0), goal_sent_(false)
   {
     odom_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "/odom", 10,
@@ -28,6 +29,13 @@ public:
     nav2_client_ = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
       nav2_node_, "navigate_to_pose"
     );
+
+    // Mapping the 4 assignment waypoints to their coordinates
+    waypoints_["wp0"] = {0.0, 0.0};   // Initial/Start point
+    waypoints_["wp1"] = {-6.0, -6.0};
+    waypoints_["wp2"] = {-6.0, 6.0};
+    waypoints_["wp3"] = {6.0, -6.0};
+    waypoints_["wp4"] = {6.0, 6.0};
   }
 
 private:
@@ -40,20 +48,17 @@ private:
       return;
     }
 
+    // args[0] is robot, args[1] is wp_from, args[2] is wp_to
     std::string wp_to_navigate = args[2];
 
-    double goal_x, goal_y;
-    if (wp_to_navigate == "bathroom") {
-      goal_x = 10.0;
-      goal_y = 5.0;
-    } else if (wp_to_navigate == "bedroom") {
-      goal_x = 5.0;
-      goal_y = 6.0;
-    } else {
+    if (waypoints_.find(wp_to_navigate) == waypoints_.end()) {
       RCLCPP_ERROR(get_logger(), "Unknown waypoint: %s", wp_to_navigate.c_str());
       finish(false, 0.0, "Unknown waypoint");
       return;
     }
+
+    double goal_x = waypoints_[wp_to_navigate].first;
+    double goal_y = waypoints_[wp_to_navigate].second;
 
     if (!goal_sent_) {
       if (!nav2_client_->wait_for_action_server(1s)) {
@@ -63,6 +68,7 @@ private:
 
       geometry_msgs::msg::PoseStamped goal_pose;
       goal_pose.header.frame_id = "map";
+      goal_pose.header.stamp = now();
       goal_pose.pose.position.x = goal_x;
       goal_pose.pose.position.y = goal_y;
       goal_pose.pose.orientation.w = 1.0;
@@ -70,14 +76,19 @@ private:
       auto goal_msg = nav2_msgs::action::NavigateToPose::Goal();
       goal_msg.pose = goal_pose;
 
-      rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions send_goal_options;
+      auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+      
       send_goal_options.result_callback =
         [this, wp_to_navigate](const rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::WrappedResult & result)
         {
           if (result.code != rclcpp_action::ResultCode::SUCCEEDED) {
-            RCLCPP_ERROR(get_logger(), "Navigation failed: %s", wp_to_navigate.c_str());
-            finish(true, 1.0, "Move failed");
+            RCLCPP_ERROR(get_logger(), "Navigation failed to waypoint: %s", wp_to_navigate.c_str());
+            finish(false, 0.0, "Nav2 failed");
+          } else {
+            RCLCPP_INFO(get_logger(), "Reached waypoint: %s", wp_to_navigate.c_str());
+            finish(true, 1.0, "Move completed");
           }
+          goal_sent_ = false; 
         };
 
       nav2_client_->async_send_goal(goal_msg, send_goal_options);
@@ -87,19 +98,12 @@ private:
       start_y_ = current_y_;
     }
 
+    // Progress feedback calculation based on distance
     double total_dist = std::hypot(goal_x - start_x_, goal_y - start_y_);
     double rem_dist   = std::hypot(goal_x - current_x_, goal_y - current_y_);
-    progress_ = total_dist > 0.0 ? 1.0 - std::min(rem_dist / total_dist, 1.0) : 1.0;
+    progress_ = total_dist > 0.01 ? 1.0 - std::min(rem_dist / total_dist, 1.0) : 1.0;
 
     send_feedback(progress_, "Moving to " + wp_to_navigate);
-
-    if (rem_dist < 0.6) {
-      goal_sent_= false;
-      progress_ = 1.0;
-      send_feedback(progress_, "Moving to " + wp_to_navigate);
-      RCLCPP_INFO(get_logger(), "Reached waypoint: %s", wp_to_navigate.c_str());
-      finish(true, 1.0, "Move completed");
-    }
 
     rclcpp::spin_some(nav2_node_);
   }
@@ -110,6 +114,7 @@ private:
     current_y_ = msg->pose.pose.position.y;
   }
 
+  std::map<std::string, std::pair<double, double>> waypoints_;
   float progress_;
   bool goal_sent_;
   double start_x_ = 0.0, start_y_ = 0.0;
@@ -130,8 +135,6 @@ int main(int argc, char ** argv)
   node->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
 
   rclcpp::spin(node->get_node_base_interface());
-
   rclcpp::shutdown();
-
   return 0;
 }

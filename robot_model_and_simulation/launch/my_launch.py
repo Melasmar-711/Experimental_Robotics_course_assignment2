@@ -9,17 +9,14 @@ from launch.substitutions import  LaunchConfiguration, PathJoinSubstitution, Tex
 def generate_launch_description():
 
     world_arg = DeclareLaunchArgument(
-        'world', default_value='assignment1.sdf',
+        'world', default_value='simple_world.sdf',
         description='Name of the Gazebo world file to load'
     )
 
-    pkg_bme_gazebo_sensors= get_package_share_directory('assign2')
+    pkg_assign2= get_package_share_directory('assign2')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
-
-    
-
-    gazebo_models_path = os.path.join(pkg_bme_gazebo_sensors, 'aruco_boxes_models')
+    gazebo_models_path = os.path.join(pkg_assign2, 'aruco_boxes_models')
 
     os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
     # Safely prepend/append so it works when the var is unset
@@ -37,7 +34,7 @@ def generate_launch_description():
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
         ),
         launch_arguments={'gz_args': [PathJoinSubstitution([
-            pkg_bme_gazebo_sensors,
+            pkg_assign2,
             'worlds',
             LaunchConfiguration('world')
         ]),
