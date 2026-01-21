@@ -126,7 +126,7 @@ def generate_launch_description():
         name='lifecycle_manager_node',
         namespace=namespace,
         output='screen',
-        parameters=[{'autostart': True, 'bond_timeout': 4.0}])
+        parameters=[])
     
     mission_manager_cmd = Node(
         package='plansys_interface',
@@ -175,8 +175,8 @@ def generate_launch_description():
     ld.add_action(problem_expert_cmd)
     ld.add_action(planner_cmd)
     ld.add_action(executor_cmd)
-    ld.add_action(lifecycle_manager_cmd)
     ld.add_action(mission_manager_cmd)
+    ld.add_action(lifecycle_manager_cmd)
     ld.add_action(move_cmd)
     ld.add_action(search_cmd)
     ld.add_action(picture_cmd)

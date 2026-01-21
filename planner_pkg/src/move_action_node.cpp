@@ -31,7 +31,7 @@ public:
     );
 
     // Mapping the 4 assignment waypoints to their coordinates
-    waypoints_["wp0"] = {0.0, 0.0};   // Initial/Start point
+    waypoints_["wp0"] = {1.0, 1.0};   // Initial/Start point
     waypoints_["wp1"] = {-6.0, -6.0};
     waypoints_["wp2"] = {-6.0, 6.0};
     waypoints_["wp3"] = {6.0, -6.0};
@@ -117,8 +117,8 @@ private:
   std::map<std::string, std::pair<double, double>> waypoints_;
   float progress_;
   bool goal_sent_;
-  double start_x_ = 0.0, start_y_ = 0.0;
-  double current_x_ = 0.0, current_y_ = 0.0;
+  double start_x_ = 1.0, start_y_ = 1.0;
+  double current_x_ = 1.0, current_y_ = 1.0;
 
   rclcpp::Node::SharedPtr nav2_node_;
   rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SharedPtr nav2_client_;

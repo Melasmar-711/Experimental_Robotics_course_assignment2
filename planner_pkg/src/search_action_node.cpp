@@ -17,49 +17,80 @@ public:
   SearchAction() : plansys2::ActionExecutorClient("search_waypoint", 250ms) {
     RCLCPP_INFO(get_logger(), "Initializing SearchAction...");
 
+    callback_group_subscriber_ = this->create_callback_group(
+      rclcpp::CallbackGroupType::MutuallyExclusive);
+
+    auto sub_opt = rclcpp::SubscriptionOptions();
+    sub_opt.callback_group = callback_group_subscriber_;
+
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     marker_pub_ = this->create_publisher<std_msgs::msg::String>("/detected_markers", 10);
-    
+
     image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "/camera/image_raw", 10, std::bind(&SearchAction::image_callback, this, std::placeholders::_1));
-    
+      "/camera/image", 
+      rclcpp::SensorDataQoS(), 
+      std::bind(&SearchAction::image_callback, this, std::placeholders::_1),
+      sub_opt); 
+
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "/odom", 10, std::bind(&SearchAction::odom_callback, this, std::placeholders::_1));
-    
-    // FIX: Correctly initialize Pointers for OpenCV compatibility
+      "/odom", 10, 
+      std::bind(&SearchAction::odom_callback, this, std::placeholders::_1),
+      sub_opt);
+
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
     parameters_ = cv::aruco::DetectorParameters::create();
-    
+
     RCLCPP_INFO(get_logger(), "SearchAction Initialized.");
   }
 
 private:
+  rclcpp::CallbackGroup::SharedPtr callback_group_subscriber_;
+  
   void do_work() override {
     auto args = get_arguments();
-    if (args.size() < 2) return;
+    if (args.size() < 2) {
+        finish(false, 0.0, "Missing arguments");
+        return;
+    }
     current_waypoint_ = args[1]; 
 
+    // 1. Start of Action Logic
     if (status_ == IDLE) {
       initial_yaw_ = current_yaw_;
       rotated_360_ = false;
+      marker_found_ = false; // Reset the detection flag for the new waypoint
       status_ = ROTATING;
       RCLCPP_INFO(get_logger(), "Starting search at %s", current_waypoint_.c_str());
     }
 
+    // 2. If image_callback found a marker, finish immediately
+    if (marker_found_) {
+      auto stop_cmd = geometry_msgs::msg::Twist();
+      cmd_vel_pub_->publish(stop_cmd); // Stop the robot
+      
+      RCLCPP_INFO(get_logger(), "Marker detected! Finishing action for %s", current_waypoint_.c_str());
+      finish(true, 1.0, "Marker found");
+      status_ = IDLE;
+      return; 
+    }
+
+    // 3. Rotation Logic
     auto cmd = geometry_msgs::msg::Twist();
     if (status_ == ROTATING) {
       cmd.angular.z = 0.5; 
       cmd_vel_pub_->publish(cmd);
 
       double diff = std::abs(current_yaw_ - initial_yaw_);
-      if (diff > M_PI) diff = 2 * M_PI - diff; // Normalize angle
+      if (diff > M_PI) diff = 2 * M_PI - diff; 
       
       if (std::abs(current_yaw_ - initial_yaw_) > 6.0) rotated_360_ = true;
       
-      if (rotated_360_ && diff < 0.1) {
+      // Fallback: If we finished 360 degrees and found nothing
+      if (rotated_360_ && diff < 0.2) {
         cmd.angular.z = 0.0;
         cmd_vel_pub_->publish(cmd);
-        finish(true, 1.0, "Waypoint searched");
+        RCLCPP_INFO(get_logger(), "360 rotation complete at %s (No marker found)", current_waypoint_.c_str());
+        finish(true, 1.0, "Waypoint searched (complete)");
         status_ = IDLE;
       }
     }
@@ -67,26 +98,28 @@ private:
   }
 
   void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    if (status_ != ROTATING) return;
+    // Only process images if we are currently searching and haven't found a marker yet
+    if (status_ != ROTATING || marker_found_) return;
     
     try {
-      auto cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
+      auto cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
       std::vector<int> ids;
       std::vector<std::vector<cv::Point2f>> corners;
       
-      // FIX: Pass the pointer directly
       cv::aruco::detectMarkers(cv_ptr->image, dictionary_, corners, ids, parameters_);
 
-      for (int id : ids) {
-        auto message = std_msgs::msg::String();
-        message.data = std::to_string(id) + ":" + current_waypoint_;
-        marker_pub_->publish(message);
-        RCLCPP_INFO(get_logger(), "Found Marker: %d", id);
+      if (!ids.empty()) {
+        for (int id : ids) {
+          auto message = std_msgs::msg::String();
+          message.data = std::to_string(id) + ":" + current_waypoint_;
+          marker_pub_->publish(message);
+          RCLCPP_INFO(get_logger(), "SUCCESS: Found Marker %d at %s", id, current_waypoint_.c_str());
+        }
+        // Set flag so do_work() can stop the robot and finish the action
+        marker_found_ = true;
       }
     } catch (cv_bridge::Exception& e) {
       RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
-    } catch (cv::Exception& e) {
-      RCLCPP_ERROR(get_logger(), "OpenCV exception: %s", e.what());
     }
   }
 
@@ -102,8 +135,8 @@ private:
   std::string current_waypoint_;
   double initial_yaw_ = 0.0, current_yaw_ = 0.0;
   bool rotated_360_ = false;
+  bool marker_found_ = false; 
   
-  // FIX: Must be cv::Ptr to satisfy compiler signature
   cv::Ptr<cv::aruco::Dictionary> dictionary_;
   cv::Ptr<cv::aruco::DetectorParameters> parameters_;
   
@@ -116,10 +149,15 @@ private:
 int main(int argc, char ** argv) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<SearchAction>();
+
   node->set_parameter(rclcpp::Parameter("action_name", "search_waypoint"));
   node->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
   node->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
-  rclcpp::spin(node->get_node_base_interface());
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node->get_node_base_interface());
+  executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }
