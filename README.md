@@ -108,5 +108,4 @@ in a fifth terminal run
 ## Results
 
 ### video
-
-[![Demo](https://img.youtube.com/vi/Gk8OgA8lAYM /0.jpg)](https://youtu.be/Gk8OgA8lAYM)
+[![Demo](https://img.youtube.com/vi/Gk8OgA8lAYM/0.jpg)](https://youtu.be/Gk8OgA8lAYM)
