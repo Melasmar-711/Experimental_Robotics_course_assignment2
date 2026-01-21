@@ -24,35 +24,10 @@ find_package(OpenCV REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-
-add_executable(get_plan src/getplan.cpp)
-add_executable(get_plan_and_execute src/getplan_and_execute.cpp)
 add_executable(search_action_node src/search_action_node.cpp)
 add_executable(picture_action_node src/picture_action_node.cpp)
 add_executable(move_action_node src/move_action_node.cpp)
 add_executable(action_manager_node src/action_manager_node.cpp)
-
-ament_target_dependencies(get_plan
-  rclcpp
-  plansys2_pddl_parser
-  plansys2_msgs
-  plansys2_domain_expert
-  plansys2_planner
-  plansys2_problem_expert
-)
-
-ament_target_dependencies(get_plan_and_execute
-  rclcpp
-  plansys2_pddl_parser
-  plansys2_msgs
-  plansys2_domain_expert
-  plansys2_planner
-  plansys2_problem_expert
-  plansys2_executor
-  rclcpp_action
-)
-
-
 
 ament_target_dependencies(search_action_node
   rclcpp
@@ -103,7 +78,7 @@ install(DIRECTORY
 )
 
 install(TARGETS
-  get_plan get_plan_and_execute  search_action_node picture_action_node  move_action_node action_manager_node
+  search_action_node picture_action_node  move_action_node action_manager_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
