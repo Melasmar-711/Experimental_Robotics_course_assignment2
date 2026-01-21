@@ -107,16 +107,6 @@ in a fifth terminal run
 
 ## Results
 
-### log of plans
-
-**in the exploration phase**  
-
-
-
-
-**in the sorting and processing phase**
-
-
-
 ### video
 
+[![Demo](https://img.youtube.com/vi/Gk8OgA8lAYM /0.jpg)](https://youtu.be/Gk8OgA8lAYM)
