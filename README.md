@@ -104,6 +104,7 @@ This sends the PDDL goal to the action manager node, which coordinates the execu
 ros2 launch plansys_interface mission.launch.py
 
 ---
+
 ## Project Structure
 
 The project is structured as follows:
