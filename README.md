@@ -86,7 +86,7 @@ To execute the full autonomous mission, follow these steps in order using separa
 ### 1. Launch the Simulation
 This brings up the Gazebo environment, the robot model (URDF), and the necessary sensor plugins.
 ```bash
-ros2 launch robot_model_and_simulation simulation.launch.py
+ros2 launch assign2 spawn_robot.launch.py
 
 ### 2. Launch the Localization
 This starts the AMCL localization with the specified parameters and environment map.
@@ -109,17 +109,17 @@ The project is structured as follows:
 
 ```
 Experimental_Robotics_course_assignment2/
-├── plansys_interface/
-│   ├── action_manager_node.py       # The Brain. Manages the PDDL domain, mission states, and coordinates the execution of high-level actions (Move, Search, Picture) by interfacing with PlanSys2.
-│   ├── search_action_node.py        # The Navigator. Contains the configuration for the Nav2 stack, including costmap parameters, AMCL localization, and environment maps.
-│   ├── picture_action_node.py       # The Body & World. Provides the robot's physical description (URDF/Xacro), sensor plugins (Lidar/Camera), and the Gazebo simulation environment.
-│   └── action_manager_node.py
-├── ros2_navigation/
-│   ├── navigator.py                 # The Navigator. Contains the configuration for the Nav2 stack, including costmap parameters, AMCL localization, and environment maps.
-│   └── localization.py              # The Body & World. Provides the robot's physical description (URDF/Xacro), sensor plugins (Lidar/Camera), and the Gazebo simulation environment.
-└── robot_model_and_simulation/
-    ├── robot_model_and_simulation.py  # The Body & World. Provides the robot's physical description (URDF/Xacro), sensor plugins (Lidar/Camera), and the Gazebo simulation environment.
-    └── simulation.py                  # The Body & World. Provides the robot's physical description (URDF/Xacro), sensor plugins (Lidar/Camera), and the Gazebo simulation environment.
+    ├── plansys_interface/          # High-level mission & PDDL
+    │   ├── pddl/                   # domain.pddl & problem.pddl
+    │   ├── src/                    # Action node C++ sources
+    │   └── launch/                 # mission.launch.py
+    ├── ros2_navigation/            # Nav2 configuration
+    │   ├── params/                 # Costmap & Planner yaml files
+    │   └── maps/                   # Environment .yaml and .pgm
+    └── robot_model_and_simulation/ # Robot and Gazebo assets
+        ├── urdf/                   # Robot description (Xacro)
+        ├── worlds/                 # Gazebo .world files
+        └── launch/                 # simulation.launch.py
 ```
 
 ---
