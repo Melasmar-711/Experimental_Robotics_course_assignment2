@@ -43,10 +43,12 @@ The high-level logic is defined in `domain.pddl` using the following actions:
     * `opencv` & `cv_bridge`
     * `gazebo_ros_pkgs`
 
+## Install dependencies
+
 ```bash
-# Install dependencies
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-plansys2-* ros-$ROS_DISTRO-navigation2 ros-$ROS_DISTRO-nav2-bringup ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv
+```
 
 ---
 
@@ -104,5 +106,7 @@ ros2 launch ros2_navigation navigator.launch.py
 This sends the PDDL goal to the action manager node, which coordinates the execution of high-level actions.
 ```bash
 ros2 launch plansys_interface mission.launch.py
+```
 
 ---
+
