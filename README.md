@@ -48,6 +48,8 @@ The high-level logic is defined in `domain.pddl` using the following actions:
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-plansys2-* ros-$ROS_DISTRO-navigation2 ros-$ROS_DISTRO-nav2-bringup ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv
 
+---
+
 ## 🚀 Installation & Build
 
 1.  **Create and Initialize Workspace:**
@@ -102,24 +104,5 @@ ros2 launch ros2_navigation navigator.launch.py
 This sends the PDDL goal to the action manager node, which coordinates the execution of high-level actions.
 ```bash
 ros2 launch plansys_interface mission.launch.py
-
----
-
-## Project Structure
-
-The project is structured as follows:
-
-Experimental_Robotics_course_assignment2/
-├── plansys_interface/          # High-level mission & PDDL
-│   ├── pddl/                   # domain.pddl & problem.pddl
-│   ├── src/                    # Action node C++ sources
-│   └── launch/                 # mission.launch.py
-├── ros2_navigation/            # Nav2 configuration
-│   ├── params/                 # Costmap & Planner yaml files
-│   └── maps/                   # Environment .yaml and .pgm
-└── robot_model_and_simulation/ # Robot and Gazebo assets
-    ├── urdf/                   # Robot description (Xacro)
-    ├── worlds/                 # Gazebo .world files
-    └── launch/                 # simulation.launch.py
 
 ---
