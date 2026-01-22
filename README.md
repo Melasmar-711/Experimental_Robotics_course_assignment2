@@ -75,6 +75,7 @@ The domain defines three durative actions:
 3.  **Build**:
     ```bash
     cd ..
+    colcon build
     source install/setup.bash
     ```
 
@@ -109,3 +110,8 @@ in a fifth terminal run
 
 ### video
 [![Demo](https://img.youtube.com/vi/Gk8OgA8lAYM/0.jpg)](https://youtu.be/Gk8OgA8lAYM)
+
+
+
+## Documentation
+ 
