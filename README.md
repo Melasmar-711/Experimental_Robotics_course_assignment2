@@ -91,16 +91,19 @@ To execute the full autonomous mission, follow these steps in order using separa
 This brings up the Gazebo environment, the robot model (URDF), and the necessary sensor plugins.
 ```bash
 ros2 launch assign2 spawn_robot.launch.py
+```
 
 ### 2. Launch the Localization
 This starts the AMCL localization with the specified parameters and environment map.
 ```bash
 ros2 launch ros2_navigation localization.launch.py
+```
 
 ### 3. Launch the Navigator
 This initializes the Nav2 stack and starts the action manager node.
 ```bash
 ros2 launch ros2_navigation navigator.launch.py
+```
 
 ### 4. Launch the Mission
 This sends the PDDL goal to the action manager node, which coordinates the execution of high-level actions.
