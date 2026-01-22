@@ -101,9 +101,7 @@ private:
         std::vector<std::vector<cv::Point2f>> corners;
         cv::aruco::detectMarkers(frame, dictionary_, corners, ids, parameters_);
 
-        // 1. Drawing Visuals
-        // Draw the title
-        std::string title = "Searching for Id: " + (target_marker_id_ == -1 ? "NONE" : std::to_string(target_marker_id_));
+        std::string title = "Searching for marker ";
         cv::putText(frame, title, cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 255), 2);
 
         // Check if target is in sight
@@ -119,7 +117,7 @@ private:
           float center_y = (corners[idx][0].y + corners[idx][2].y) / 2.0;
           cv::circle(frame, cv::Point2f(center_x, center_y), 5, cv::Scalar(0, 0, 255), -1);
 
-          // Centering and Approach Logic (only if not finished)
+          // Centering and Approach Logic 
           if (!reached_marker_) {
             state_ = APPROACHING;
             double area = cv::contourArea(corners[idx]);
@@ -153,7 +151,6 @@ private:
   void stop_robot() {
     auto cmd = geometry_msgs::msg::Twist();
     cmd_vel_pub_->publish(cmd);
-    cv::destroyWindow("Robot Camera");
   }
 
   bool reached_marker_ = false;

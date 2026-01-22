@@ -144,7 +144,6 @@ private:
   void stop_robot() {
     auto stop_cmd = geometry_msgs::msg::Twist();
     cmd_vel_pub_->publish(stop_cmd);
-    cv::destroyWindow("Robot Camera");
   }
 
   enum { IDLE, ROTATING } status_ = IDLE;

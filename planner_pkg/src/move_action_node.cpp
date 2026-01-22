@@ -30,8 +30,7 @@ public:
       nav2_node_, "navigate_to_pose"
     );
 
-    // Mapping the 4 assignment waypoints to their coordinates
-    waypoints_["wp0"] = {1.0, 1.0};   // Initial/Start point
+    waypoints_["wp0"] = {1.0, 1.0};   
     waypoints_["wp1"] = {-6.0, -6.0};
     waypoints_["wp2"] = {-6.0, 6.0};
     waypoints_["wp3"] = {6.0, -6.0};
@@ -77,7 +76,7 @@ private:
       goal_msg.pose = goal_pose;
 
       auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
-      
+      RCLCPP_INFO(get_logger(), "Navigating to waypoint: %s", wp_to_navigate.c_str());
       send_goal_options.result_callback =
         [this, wp_to_navigate](const rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::WrappedResult & result)
         {
