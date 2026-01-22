@@ -1,4 +1,4 @@
-# Autonomous Marker Search and Inspection Robot
+# Experimental Robotics Assignment 2: PlanSys2 Exploration & Visual Servoing
 
 An autonomous ROS2 project utilizing **PlanSys2** for high-level mission planning and **Nav2** for autonomous navigation. The robot executes a two-phase mission: searching specific waypoints for ArUco markers and subsequently revisiting them to perform inspection tasks (taking photos).
 
