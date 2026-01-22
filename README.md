@@ -107,19 +107,17 @@ ros2 launch plansys_interface mission.launch.py
 
 The project is structured as follows:
 
-```
 Experimental_Robotics_course_assignment2/
-    ├── plansys_interface/          # High-level mission & PDDL
-    │   ├── pddl/                   # domain.pddl & problem.pddl
-    │   ├── src/                    # Action node C++ sources
-    │   └── launch/                 # mission.launch.py
-    ├── ros2_navigation/            # Nav2 configuration
-    │   ├── params/                 # Costmap & Planner yaml files
-    │   └── maps/                   # Environment .yaml and .pgm
-    └── robot_model_and_simulation/ # Robot and Gazebo assets
-        ├── urdf/                   # Robot description (Xacro)
-        ├── worlds/                 # Gazebo .world files
-        └── launch/                 # simulation.launch.py
-```
+├── plansys_interface/          # High-level mission & PDDL
+│   ├── pddl/                   # domain.pddl & problem.pddl
+│   ├── src/                    # Action node C++ sources
+│   └── launch/                 # mission.launch.py
+├── ros2_navigation/            # Nav2 configuration
+│   ├── params/                 # Costmap & Planner yaml files
+│   └── maps/                   # Environment .yaml and .pgm
+└── robot_model_and_simulation/ # Robot and Gazebo assets
+    ├── urdf/                   # Robot description (Xacro)
+    ├── worlds/                 # Gazebo .world files
+    └── launch/                 # simulation.launch.py
 
 ---
