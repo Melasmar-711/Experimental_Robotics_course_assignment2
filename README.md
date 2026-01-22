@@ -113,3 +113,14 @@ ros2 launch plansys_interface mission.launch.py
 
 ---
 
+## 🎥 Project Demo
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/Vu759o0W9lA" controls="controls" muted="muted" style="max-width: 80%; border-radius: 10px;">
+    Your browser does not support the video tag.
+  </video>
+  <p><em>Watch the full ERL Assignment 2 mission: <a href="https://youtu.be/Vu759o0W9lA">YouTube Link</a></em></p>
+</div>
+
+---
+
