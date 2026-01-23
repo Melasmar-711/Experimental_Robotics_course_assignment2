@@ -31,7 +31,7 @@ def generate_launch_description():
     )
 
     model_arg = DeclareLaunchArgument(
-        'model', default_value='mogi_bot.urdf',
+        'model', default_value='robot.xacro',
         description='Name of the URDF description to load'
     )
 
@@ -43,6 +43,11 @@ def generate_launch_description():
     y_arg = DeclareLaunchArgument(
         'y', default_value='1',
         description='y coordinate of spawned robot'
+    )
+
+    z_arg = DeclareLaunchArgument(
+        'z', default_value='0.5',
+        description='z coordinate of spawned robot'
     )
 
     yaw_arg = DeclareLaunchArgument(
@@ -87,7 +92,7 @@ def generate_launch_description():
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-name", "mogi_bot",
+            "-name", "differential_drive_robot",
             "-topic", "robot_description",
             "-x", LaunchConfiguration('x'), "-y", LaunchConfiguration('y'), "-z", "0.5", "-Y", LaunchConfiguration('yaw')  # Initial spawn position
         ],
@@ -110,7 +115,7 @@ def generate_launch_description():
             "/camera/image@sensor_msgs/msg/Image@gz.msgs.Image",
             "/camera/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
             "imu@sensor_msgs/msg/Imu@gz.msgs.IMU",
-            "/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat",
+            #"/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat",
             "/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
             
             #"/camera/depth_image@sensor_msgs/msg/Image@gz.msgs.Image",
@@ -189,6 +194,7 @@ def generate_launch_description():
     launchDescriptionObject.add_action(model_arg)
     launchDescriptionObject.add_action(x_arg)
     launchDescriptionObject.add_action(y_arg)
+    launchDescriptionObject.add_action(z_arg)
     launchDescriptionObject.add_action(yaw_arg)
     launchDescriptionObject.add_action(sim_time_arg)
     launchDescriptionObject.add_action(world_launch)
