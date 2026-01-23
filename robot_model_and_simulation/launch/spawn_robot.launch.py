@@ -21,7 +21,7 @@ def generate_launch_description():
     )
 
     rviz_config_arg = DeclareLaunchArgument(
-        'rviz_config', default_value='assign2.rviz',
+        'rviz_config', default_value='rviz.rviz',
         description='RViz config file'
     )
 
@@ -31,7 +31,7 @@ def generate_launch_description():
     )
 
     model_arg = DeclareLaunchArgument(
-        'model', default_value='robot.xacro',
+        'model', default_value='robot.urdf',
         description='Name of the URDF description to load'
     )
 
@@ -108,7 +108,7 @@ def generate_launch_description():
         executable="parameter_bridge",
         arguments=[
             "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
-            "/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist",
+            "/robot_vel@geometry_msgs/msg/Twist@gz.msgs.Twist",
             "/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry",
             "/joint_states@sensor_msgs/msg/JointState@gz.msgs.Model",
             #"/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V",

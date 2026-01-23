@@ -27,7 +27,7 @@ private:
   void do_work() override {
     // --- Lazy Initialization ---
     if (cmd_vel_pub_ == nullptr) {
-        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/robot_vel", 10);
     }
     if (image_sub_ == nullptr) {
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(

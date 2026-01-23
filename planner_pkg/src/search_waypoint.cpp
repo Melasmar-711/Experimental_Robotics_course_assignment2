@@ -34,7 +34,7 @@ private:
         std::bind(&SearchAction::image_callback, this, std::placeholders::_1));
     }
     if (vel_pub_ == nullptr) {
-        vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/robot_vel", 10);
     }
 
     // 2. Initialize Timer
